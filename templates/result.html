@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Prediction Result</title>
+<style>
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: url('https://c4.wallpaperflare.com/wallpaper/522/4/864/abstract-car-sports-car-parts-mechanics-ferrari-exploded-view-diagram-composite-wallpaper-preview.jpg') no-repeat center/cover;
+        overflow: hidden; 
+    }
+
+    body::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.8);
+        z-index: 0;
+    }
+
+    .container {
+        position: relative;
+        z-index: 1;
+        width: 95%;
+        max-width: 1000px;
+        max-height: 95vh; 
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 25px;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .title {
+        text-align: center;
+        font-size: 1.5em;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        flex: 1; 
+        min-height: 0; 
+    }
+
+    .left-col, .right-col {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        min-height: 0;
+    }
+
+    .label {
+        color: #a5ffb2;
+        font-weight: bold;
+        font-size: 0.9em;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    /* Media Boxes */
+    .media-box {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .media-box img, .media-box iframe {
+        width: 100%;
+        flex: 1; 
+        object-fit: cover;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(0,0,0,0.3);
+    }
+
+    /* Details Styling */
+    .section {
+        background: rgba(255,255,255,0.05);
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .confidence-text {
+        font-family: monospace;
+        font-size: 2.2em;
+    }
+
+    .bar {
+        height: 8px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        margin-top: 8px;
+        overflow: hidden;
+    }
+
+    .fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00ff99, #00cc66);
+        width: calc({{ confidence }} * 100%); 
+    }
+
+    .description-text {
+        font-size: 1.1em;
+        line-height: 1.4;
+        max-height: 100px;
+        overflow-y: auto; 
+    }
+
+    .btn-container {
+        margin-top: 20px;
+        text-align: center;
+    }
+
+    .btn-container a {
+        text-decoration: none;
+        color: white;
+        background: linear-gradient(45deg, #632f2f, #4f1207);
+        padding: 12px 30px;
+        border-radius: 50px;
+        font-weight: bold;
+        transition: transform 0.2s;
+        display: inline-block;
+    }
+
+    .btn-container a:hover {
+        transform: scale(1.05);
+    }
+
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="title">Prediction Result</div>
+
+    <div class="content-grid">
+        <div class="left-col">
+            <div class="media-box">
+                <span class="label">Uploaded Image</span>
+                <img src="{{ url_for('uploaded_file', filename=image_file) }}" alt="Result">
+            </div>
+            
+            <div class="section">
+                <span class="label">Predicted Class</span>
+                <strong style="font-size: 1.2em;">{{ class_label }}</strong>
+            </div>
+        </div>
+
+        <div class="right-col">
+            <div class="section">
+                <span class="label">Confidence Score</span>
+                <span class="confidence-text">{{ confidence }}</span> 
+                <div class="bar"><div class="fill"></div></div>
+            </div>
+
+            <div class="section">
+                <span class="label">Description</span>
+                <div class="description-text">{{ description }}</div>
+            </div>
+            
+<div class="media-box">
+    <span class="label" id="location-status">Nearest Showrooms</span>
+    <iframe 
+        id="live-gmap"
+        style="border:0; border-radius: 12px;" 
+        loading="lazy" 
+        allowfullscreen 
+        src="about:blank">
+    </iframe>
+    <div class="btn-container">
+        <a href="/">⬅ Try Another Image</a>
+    </div>
+</div>
+
+<script>
+    function initMap() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                updateGoogleMap(lat, lng);
+            }, function () {
+                updateGoogleMap(17.7188, 83.3190);
+            });
+        } else {
+            updateGoogleMap(17.7188, 83.3190);
+        }
+    }
+
+    function updateGoogleMap(lat, lng) {
+        const classLabel = "{{ class_label }}";
+        const mapIframe = document.getElementById('live-gmap');
+        const searchQuery = encodeURIComponent(`${classLabel} showrooms and automobile shops`);
+        const mapUrl = `https://www.google.com/maps/embed/v1/search?key=YOUR_GOOGLE_MAPS_API_KEY&q=${searchQuery}&center=${lat},${lng}&zoom=14`;
+
+        // If you do not have an API key, use this alternative Google search URL format:
+        const alternativeUrl = `https://maps.google.com/maps?q=${searchQuery}&ll=${lat},${lng}&z=14&output=embed`;
+
+        mapIframe.src = alternativeUrl;
+    }
+
+    window.onload = initMap;
+</script>
+</body>
+</html>
